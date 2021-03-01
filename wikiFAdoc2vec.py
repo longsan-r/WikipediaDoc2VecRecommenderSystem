@@ -14,13 +14,16 @@ tokenizer = RegexpTokenizer(r"\w+")  # remove punctuation marks
 
 corpus = []
 # iterate over and tokenize all articles
-dirPath = "/Users/longsan/Desktop/doc2vecFAwiki/ArticleContentEnglish"
+dirPath = r"/Users/longsan/Desktop/doc2vecFAwiki/ArticleContentEnglish"
 os.chdir(dirPath)
 for folder in os.listdir():
     folderPath = os.path.join(dirPath, folder)
     os.chdir(folderPath)
     for fileName in os.listdir():
         filePath = os.path.join(folderPath, fileName)
+        with io.open(r"C:\Users\HenzesburgBenz\Desktop\doc2vecFAwiki\articles.txt", "a", encoding="utf-8") as w:
+            w.write(fileName)
+            w.write("\n")
         try:
             print("tokenizing articles...")
             with io.open(file=filePath, mode="r", encoding="utf-8") as f:
@@ -28,6 +31,7 @@ for folder in os.listdir():
                 text_tokens = tokenizer.tokenize(contents)
                 tokens_without_sw = [
                     word for word in text_tokens if not word in stopwords.words()]
+                tokens_without_sw = list(tokens_without_sw)
                 corpus.append(tokens_without_sw)
         except Exception as e:
             print(e)
@@ -37,17 +41,22 @@ documents = [TaggedDocument(doc, [i]) for i, doc in enumerate(corpus)]
 
 # models definition
 # PV-DBOW
-pv_dbow_model = Doc2Vec(documents, dm=0, dbow_words=0, size=200, window=5,
-                        min_count=10, epochs=10, workers=cores),
+pv_dbow_model = Doc2Vec(dm=0, dbow_words=0, vector_size=200,
+                        window=5, min_count=4, epochs=10, workers=cores)
 # PV-DM w/average
-pv_dm_model = Doc2Vec(documents, dm=1, dm_mean=1, size=200, window=5,
-                      min_count=10, epochs=10, workers=cores),
+pv_dm_model = Doc2Vec(dm=1, dm_mean=1, vector_size=200,
+                      window=5, min_count=4, epochs=10, workers=cores)
+
+pv_dbow_model.build_vocab(documents)
+pv_dm_model.reset_from(pv_dbow_model)
+
 print("Start training process...")
+
 # training
 pv_dbow_model.train(
     documents, total_examples=pv_dbow_model.corpus_count, epochs=pv_dbow_model.epochs)
 pv_dm_model.train(
-    documents, total_examples=pv_dbow_model.corpus_count, epochs=pv_dbow_model.epochs)
+    documents, total_examples=pv_dm_model.corpus_count, epochs=pv_dm_model.epochs)
 
 print("Finish training!")
 # save the models for later use
